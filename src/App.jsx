@@ -29,6 +29,10 @@ function App() {
 
       const data = await response.json();
       
+      if (data.error) {
+        throw new Error(`Server Error: ${data.detail || data.error}\n\n${data.traceback || ''}`);
+      }
+      
       if (data.success) {
         setResult(data);
       } else {
