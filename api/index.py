@@ -1,11 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-try:
-    from wrapper import UltimateModerationWrapper
-except ImportError:
-    from api.wrapper import UltimateModerationWrapper
 from pydantic import BaseModel
-import uvicorn
+import traceback
 
 app = FastAPI()
 
@@ -18,7 +14,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-wrapper = UltimateModerationWrapper()
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
 
 @app.post("/api/process")
 async def process_image(
@@ -26,6 +24,19 @@ async def process_image(
     url: str = Form(None)
 ):
     try:
+        # Defer import to catch initialization errors
+        try:
+            from wrapper import UltimateModerationWrapper
+        except ImportError:
+            try:
+                from api.wrapper import UltimateModerationWrapper
+            except ImportError as e:
+                return {"error": "Import Error", "detail": str(e), "traceback": traceback.format_exc()}
+        except Exception as e:
+            return {"error": "Unknown Error on Import", "detail": str(e), "traceback": traceback.format_exc()}
+
+        wrapper = UltimateModerationWrapper()
+
         input_source = None
         if file:
             input_source = await file.read()
@@ -37,9 +48,5 @@ async def process_image(
         result = wrapper.process(input_source)
         return result
     except Exception as e:
-        import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+        return {"error": "Execution Error", "detail": str(e), "traceback": traceback.format_exc()}
