@@ -1,6 +1,9 @@
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from wrapper import UltimateModerationWrapper
+try:
+    from wrapper import UltimateModerationWrapper
+except ImportError:
+    from api.wrapper import UltimateModerationWrapper
 from pydantic import BaseModel
 import uvicorn
 
